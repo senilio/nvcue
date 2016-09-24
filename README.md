@@ -36,5 +36,5 @@ As the script scans through your notes, it will send an email notification for e
 
 Run this script from crontab, and point it to a Dropbox directory containing your nvALT notes.
 
-    0 9 * * * python ~/nvcue/nvcue.py -b ~/Dropbox/Apps/nvALT -e x@y.com -f nvCue@y.com
+    0 9 * * * ~/nvcue/nvcue.py -b ~/Dropbox/Apps/nvALT -e x@y.com -f nvCue@y.com
 
