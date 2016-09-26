@@ -13,12 +13,13 @@ import smtplib
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 import argparse
+import codecs
 
 #-----------------------------
 def modify_remind_tag(from_string, to_string, filename):
     # Copy contents of original file to a new temporary file
-    f_orig = open(filename, 'r')
-    f_new = open(filename + '.nvcue', 'w')
+    f_orig = codecs.open(filename, 'r', 'utf-8')
+    f_new = codecs.open(filename + '.nvcue', 'w', 'utf-8')
     for line in f_orig:
         f_new.write(line.replace(from_string, to_string))
     
@@ -30,12 +31,12 @@ def modify_remind_tag(from_string, to_string, filename):
     f_new.close()
 
 #-----------------------------
-def send_reminder(sender, recipient, message, server, port):
+def send_reminder(sender, recipient, message, message_body, server, port):
     msg = MIMEMultipart()
     msg['From'] = 'nvCue Reminder <' + sender + '>'
     msg['To'] = recipient
-    msg['Subject'] = u'nvCue: ' + unicode(message, "utf-8")
-    body = u'Reminder sent from nvCue :D'
+    msg['Subject'] = u'\u2605 ' + message
+    body = message_body
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
     server = smtplib.SMTP(server, port)
     text = msg.as_string()
@@ -64,17 +65,19 @@ def main():
         for line in f.readlines():
             if '@remind(' in line:
                 # Parse out @remind string
-                remind_string = re.search(r'(@remind\(.*\))', line).group(1)
+                remind_string = unicode(re.search(r'(@remind\(.*\))', line).group(1), 'utf-8')
 
-                # Extract date string from line
-                parsed_date = re.search(r'@remind\((.*) "', line).group(1)
+                # Extract date part from line
+                parsed_date = re.search(r'(\d{4}-\d{2}-\d{2})', line).group(1)
 
-                # Make sure parsed date includes time stamp even if user left it out
-                if not re.search(r"^\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}$", parsed_date):
-                    parsed_date = parsed_date + ' 00:00'
+                # Extract time part from line. If it doesn't exist, create one.
+                try:
+                    parsed_time = re.search(r'(\d{2}:\d{2})', line).group(1)
+                except AttributeError:
+                    parsed_time = '08:00'
 
                 # Create datetime objects of parsed date and runtime date
-                parsed_date_object = datetime.strptime(parsed_date, '%Y-%m-%d %H:%M')
+                parsed_date_object = datetime.strptime(parsed_date + ' ' + parsed_time, '%Y-%m-%d %H:%M')
                 now = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M') 
                 now_date_object = datetime.strptime(now, '%Y-%m-%d %H:%M')
 
@@ -82,12 +85,27 @@ def main():
                 # else pass and continue scanning
                 if parsed_date_object < now_date_object:
 
-                    # Parse the message part from line and send the email to recipient
-                    remind_message = re.search(r'"(.*)"', line).group(1)
-                    send_reminder(args.sender, args.email, remind_message, args.server, args.port)
+                    # Try to parse the optional custom message part from line. In case it's left out, 
+                    # use a default message as email subject.
+                    try:
+                        remind_message = unicode(re.search(r'"(.*)"', line).group(1), 'utf-8')
+                        custom_message = True
+                    except AttributeError:
+                        remind_message = 'nvCue reminder'
+                        custom_message = False
 
-                    # Replace @remind tag with @reminded in current file
-                    reminded_string = '@reminded(' + now + ' "' + remind_message + '")'
+                    # Fill message_body with contents of file
+                    with open(current_file, 'r') as file_content:
+                        message_body = file_content.read()
+
+                    send_reminder(args.sender, args.email, remind_message, message_body, args.server, args.port)
+
+                    # Replace @remind tag with @reminded in current file. 
+                    if custom_message:
+                        reminded_string = u'@reminded(' + unicode(now, 'utf-8') + u' "' + remind_message + u'")'
+                    else:
+                        reminded_string = u'@reminded(' + unicode(now, 'utf-8') + u')'
+
                     modify_remind_tag(remind_string, reminded_string, current_file)
 
         # Close current file and move on to the next
