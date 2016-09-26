@@ -20,6 +20,7 @@ As the script scans through your notes, it will send an email notification for e
     @reminded(2016-10-24 10:30 "Call mom today")
 
 You may also leave out the "stuff inside quotes":
+
     @remind(2016-10-24)
     @remind(2016-10-24 10:00)
 
