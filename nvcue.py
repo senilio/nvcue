@@ -35,12 +35,13 @@ def modify_remind_tag(from_string, to_string, filename):
 def send_reminder(sender, recipient, message, message_body, server, port):
     message_id = email.utils.make_msgid()
     msg = MIMEMultipart()
-    msg['From'] = 'nvCue Reminder <' + sender + '>'
-    msg['To'] = recipient
-    msg['Subject'] = u'\u2605 ' + message
+    msg.add_header('From', 'nvCue Reminder <' + sender + '>')
+    msg.add_header('To', recipient)
+    msg.add_header('Subject', u'\u2605 ' + message)
     msg.add_header("Message-ID", message_id)
-    body = message_body
-    msg.attach(MIMEText(body, 'plain', 'utf-8'))
+    msg.add_header("Date", email.utils.formatdate(localtime=True))
+    #body = message_body
+    msg.attach(MIMEText(message_body, 'plain', 'utf-8'))
     server = smtplib.SMTP(server, port)
     text = msg.as_string()
     server.sendmail(sender, recipient, text)
