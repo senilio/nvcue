@@ -10,6 +10,7 @@ from datetime import datetime
 import os
 import re
 import smtplib
+import email.utils
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 import argparse
@@ -32,10 +33,12 @@ def modify_remind_tag(from_string, to_string, filename):
 
 #-----------------------------
 def send_reminder(sender, recipient, message, message_body, server, port):
+    message_id = email.utils.make_msgid()
     msg = MIMEMultipart()
     msg['From'] = 'nvCue Reminder <' + sender + '>'
     msg['To'] = recipient
     msg['Subject'] = u'\u2605 ' + message
+    msg.add_header("Message-ID", message_id)
     body = message_body
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
     server = smtplib.SMTP(server, port)
@@ -64,6 +67,8 @@ def main():
         f = open(current_file, 'r')
         for line in f.readlines():
             if '@remind(' in line:
+                print "Will work with:"
+                print line
                 # Parse out @remind string
                 remind_string = unicode(re.search(r'(@remind\(.*\))', line).group(1), 'utf-8')
 
@@ -94,9 +99,14 @@ def main():
                         remind_message = 'nvCue reminder'
                         custom_message = False
 
-                    # Fill message_body with contents of file
+                    # Fill message_body with contents of file, but ignore lines with @remind tags
                     with open(current_file, 'r') as file_content:
-                        message_body = file_content.read()
+                        message_body = ''
+                        for line in file_content:
+                            if '@remind' in line:
+                                pass
+                            else:
+                                message_body += line
 
                     send_reminder(args.sender, args.email, remind_message, message_body, args.server, args.port)
 
