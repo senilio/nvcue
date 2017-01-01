@@ -57,6 +57,8 @@ def main():
     parser.add_argument('-s', '--server', type=str, help='Send email via this server', default='localhost', required=False)
     parser.add_argument('-p', '--port', type=int, help='SMTP port', default=25, required=False)
     parser.add_argument('-f', '--sender', type=str, help='Sender email address', required=True)
+    parser.add_argument('-d', '--debug', help='Print debug stuff', action='store_true', required=False, default=False)
+
     args = parser.parse_args()
 
     # Get list of notes
@@ -68,8 +70,9 @@ def main():
         f = open(current_file, 'r')
         for line in f.readlines():
             if '@remind(' in line:
-                print "Will work with:"
-                print line
+                if args.debug:
+                    print "Will work with:\n\t" + str(line.rstrip()) + "\n"
+
                 # Parse out @remind string
                 remind_string = unicode(re.search(r'(@remind\(.*\))', line).group(1), 'utf-8')
 
